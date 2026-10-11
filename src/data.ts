@@ -30,4 +30,4 @@ export const barbers: Barber[] = [
 export const timeSlots = ["10:00", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30", "20:00"]
 
 export const formatPrice = (value: number) =>
-  new Intl.NumberFormat("ru-RU", { style: "currency", currency: "KZT", maximumFractionDigits: 0 }).format(value)
+  new Intl.NumberFormat("ru-KZ", { style: "currency", currency: "KZT", currencyDisplay: "narrowSymbol", maximumFractionDigits: 0 }).format(value)

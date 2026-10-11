@@ -161,7 +161,7 @@ function Booking() {
                 <FieldLegend variant="label">Мастер</FieldLegend>
                 <ToggleGroup variant="outline" value={barberId} onValueChange={(v) => v.length && setBarberId(v)}>
                   {barbers.map((b) => (
-                    <ToggleGroupItem key={b.id} value={b.id}>
+                    <ToggleGroupItem key={b.id} value={b.id} className="data-pressed:bg-primary data-pressed:text-primary-foreground">
                       {b.name}
                     </ToggleGroupItem>
                   ))}
@@ -227,7 +227,7 @@ function Booking() {
                   onValueChange={(v) => setTime(v.slice(-1))}
                 >
                   {timeSlots.map((t) => (
-                    <ToggleGroupItem key={t} value={t} className="tabular-nums">
+                    <ToggleGroupItem key={t} value={t} className="tabular-nums data-pressed:bg-primary data-pressed:text-primary-foreground">
                       {t}
                     </ToggleGroupItem>
                   ))}
