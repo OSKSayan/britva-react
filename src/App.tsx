@@ -50,7 +50,7 @@ function Hero() {
 function Services() {
   return (
     <section id="services" className="flex scroll-mt-6 flex-col gap-6">
-      <h2 className="font-heading text-3xl font-bold uppercase">УСЛУГИ</h2>
+      <h2 className="font-heading text-3xl font-bold uppercase">НАШИ УСЛУГИ</h2>
       <Card>
         <CardContent className="flex flex-col">
           {services.map((s, i) => (
