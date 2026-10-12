@@ -50,7 +50,7 @@ function Hero() {
 function Services() {
   return (
     <section id="services" className="flex scroll-mt-6 flex-col gap-6">
-      <h2 className="font-heading text-3xl font-bold uppercase">Услуги</h2>
+      <h2 className="font-heading text-3xl font-bold uppercase">УСЛУГИ</h2>
       <Card>
         <CardContent className="flex flex-col">
           {services.map((s, i) => (
@@ -76,7 +76,7 @@ function Services() {
 function Team() {
   return (
     <section className="flex flex-col gap-6">
-      <h2 className="font-heading text-3xl font-bold uppercase">Мастера</h2>
+      <h2 className="font-heading text-3xl font-bold uppercase">МАСТЕРА</h2>
       <div className="grid gap-4 sm:grid-cols-3">
         {barbers.map((b) => (
           <Card key={b.id}>
@@ -134,7 +134,7 @@ function Booking() {
 
   return (
     <section id="book" className="flex scroll-mt-6 flex-col gap-6">
-      <h2 className="font-heading text-3xl font-bold uppercase">Запись онлайн</h2>
+      <h2 className="font-heading text-3xl font-bold uppercase">ЗАПИСЬ ОНЛАЙН</h2>
       <Card>
         <form onSubmit={onSubmit} noValidate>
           <CardContent className="grid gap-8 md:grid-cols-2">
