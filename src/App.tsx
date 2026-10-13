@@ -1,6 +1,6 @@
 import * as React from "react"
 import { ru } from "react-day-picker/locale"
-import { CalendarIcon, ClockIcon, MapPinIcon, ScissorsIcon } from "lucide-react"
+import { CalendarIcon, ClockIcon, Loader2Icon, MapPinIcon, ScissorsIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Separator } from "@/components/ui/separator"
 import { Toaster, toast } from "@/components/ui/toast"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { barbers, formatPrice, services, timeSlots } from "@/data"
+import { BOOKING_URL, barbers, formatPrice, services, timeSlots } from "@/data"
 
 function Header() {
   return (
@@ -107,6 +107,7 @@ function Booking() {
   const [name, setName] = React.useState("")
   const [phone, setPhone] = React.useState("")
   const [submitted, setSubmitted] = React.useState(false)
+  const [sending, setSending] = React.useState(false)
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -120,15 +121,37 @@ function Booking() {
     phone: !phoneValid,
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSubmitted(true)
-    if (Object.values(errors).some(Boolean)) return
+    if (Object.values(errors).some(Boolean) || sending) return
     const day = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "short" }).format(date)
+    const honeypot = (e.currentTarget.elements.namedItem("website") as HTMLInputElement | null)?.value ?? ""
+
+    if (BOOKING_URL) {
+      setSending(true)
+      try {
+        // text/plain keeps this a "simple" request, so Apps Script needs no CORS preflight
+        await fetch(BOOKING_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            name, phone, service: service?.name, barber: barber?.name, date: day, time: time[0], website: honeypot,
+          }),
+        })
+      } catch {
+        setSending(false)
+        toast.add({ type: "error", title: "Заявка не отправилась", description: "Проверьте интернет и нажмите «Записаться» ещё раз." })
+        return
+      }
+      setSending(false)
+    }
+
     toast.add({
       type: "success",
       title: "Вы записаны!",
-      description: `${service?.name}, ${day} в ${time[0]}, мастер ${barber?.name}. (демо)`,
+      description: `${service?.name}, ${day} в ${time[0]}, мастер ${barber?.name}.`,
     })
   }
 
@@ -137,6 +160,7 @@ function Booking() {
       <h2 className="font-heading text-3xl font-bold uppercase">ЗАПИСЬ ОНЛАЙН</h2>
       <Card>
         <form onSubmit={onSubmit} noValidate>
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
           <CardContent className="grid gap-8 md:grid-cols-2">
             <FieldGroup>
               <Field>
@@ -241,9 +265,9 @@ function Booking() {
               <ClockIcon aria-hidden="true" />
               {service?.minutes} мин · {service && formatPrice(service.price)}
             </span>
-            <Button type="submit" size="lg">
-              <ScissorsIcon data-icon="inline-start" />
-              Записаться
+            <Button type="submit" size="lg" disabled={sending}>
+              {sending ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <ScissorsIcon data-icon="inline-start" />}
+              {sending ? "Отправляем…" : "Записаться"}
             </Button>
           </CardFooter>
         </form>
