@@ -90,7 +90,7 @@ function Team() {
               </div>
             </CardHeader>
             <CardFooter>
-              <Badge variant="outline">Стаж {b.years} лет</Badge>
+              <Badge variant="outline">Стаж {b.years} {new Intl.PluralRules("ru").select(b.years) === "one" ? "год" : new Intl.PluralRules("ru").select(b.years) === "few" ? "года" : "лет"}</Badge>
             </CardFooter>
           </Card>
         ))}
@@ -108,11 +108,46 @@ function Booking() {
   const [phone, setPhone] = React.useState("")
   const [submitted, setSubmitted] = React.useState(false)
   const [sending, setSending] = React.useState(false)
+  const [taken, setTaken] = React.useState<string[]>([])
+  const [loadingSlots, setLoadingSlots] = React.useState(false)
+  const [refresh, setRefresh] = React.useState(0)
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const service = services.find((s) => s.id === serviceId)
   const barber = barbers.find((b) => b.id === barberId[0])
+  const dateIso = date ? toIso(date) : ""
+
+  // load booked slots for the chosen barber and day
+  React.useEffect(() => {
+    if (!BOOKING_URL || !dateIso || !barber) {
+      setTaken([])
+      return
+    }
+    let cancelled = false
+    setLoadingSlots(true)
+    fetch(`${BOOKING_URL}?date=${dateIso}&barber=${barber.id}`)
+      .then((r) => r.json())
+      .then((d: { ok: boolean; taken?: string[] }) => !cancelled && setTaken(d.taken ?? []))
+      .catch(() => !cancelled && setTaken([]))
+      .finally(() => !cancelled && setLoadingSlots(false))
+    return () => {
+      cancelled = true
+    }
+  }, [dateIso, barber, refresh])
+
+  const now = new Date()
+  const isPast = (t: string) => {
+    if (!date || toIso(date) !== toIso(now)) return false
+    const [h, m] = t.split(":").map(Number)
+    return h * 60 + m <= now.getHours() * 60 + now.getMinutes()
+  }
+  const unavailable = (t: string) => taken.includes(t) || isPast(t)
+
+  // drop a picked time once it turns out to be booked
+  React.useEffect(() => {
+    if (time[0] && unavailable(time[0])) setTime([])
+  })
   const phoneValid = phone.replace(/\D/g, "").length >= 10
   const errors = {
     date: !date,
@@ -130,22 +165,36 @@ function Booking() {
 
     if (BOOKING_URL) {
       setSending(true)
+      let result: { ok: boolean; taken?: boolean; error?: string }
       try {
         // text/plain keeps this a "simple" request, so Apps Script needs no CORS preflight
-        await fetch(BOOKING_URL, {
+        const res = await fetch(BOOKING_URL, {
           method: "POST",
-          mode: "no-cors",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({
-            name, phone, service: service?.name, barber: barber?.name, date: day, time: time[0], website: honeypot,
+            name, phone, service: service?.name, barber: barber?.name, barberId: barber?.id,
+            date: day, dateIso, time: time[0], website: honeypot,
           }),
         })
+        result = await res.json()
       } catch {
         setSending(false)
         toast.add({ type: "error", title: "Заявка не отправилась", description: "Проверьте интернет и нажмите «Записаться» ещё раз." })
         return
       }
       setSending(false)
+      if (!result.ok) {
+        if (result.taken) {
+          setTime([])
+          setRefresh((n) => n + 1)
+          toast.add({ type: "error", title: "Это время только что заняли", description: "Выберите другое свободное время." })
+        } else {
+          toast.add({ type: "error", title: "Заявка не отправилась", description: `${result.error ?? "Ошибка"}. Попробуйте ещё раз.` })
+        }
+        return
+      }
+      setTime([])
+      setRefresh((n) => n + 1)
     }
 
     toast.add({
@@ -222,7 +271,7 @@ function Booking() {
                 {submitted && errors.phone ? (
                   <FieldError>Проверьте номер: нужно минимум 10 цифр.</FieldError>
                 ) : (
-                  <FieldDescription>Пришлём напоминание за 2 часа.</FieldDescription>
+                  <FieldDescription>Позвоним, только если что-то изменится.</FieldDescription>
                 )}
               </Field>
             </FieldGroup>
@@ -251,12 +300,21 @@ function Booking() {
                   onValueChange={(v) => setTime(v.slice(-1))}
                 >
                   {timeSlots.map((t) => (
-                    <ToggleGroupItem key={t} value={t} className="tabular-nums data-pressed:bg-primary data-pressed:text-primary-foreground">
+                    <ToggleGroupItem
+                      key={t}
+                      value={t}
+                      disabled={!date || loadingSlots || unavailable(t)}
+                      aria-label={taken.includes(t) ? `${t}, занято` : t}
+                      className="tabular-nums data-pressed:bg-primary data-pressed:text-primary-foreground data-disabled:line-through"
+                    >
                       {t}
                     </ToggleGroupItem>
                   ))}
                 </ToggleGroup>
-                {submitted && errors.time && <FieldError>Выберите удобное время.</FieldError>}
+                <FieldDescription>
+                  {!date ? "Сначала выберите день." : loadingSlots ? "Проверяем свободное время…" : `Зачёркнуто — уже занято у мастера ${barber?.name}.`}
+                </FieldDescription>
+                {submitted && errors.time && <FieldError>Выберите свободное время.</FieldError>}
               </FieldSet>
             </FieldGroup>
           </CardContent>
@@ -304,3 +362,8 @@ export function App() {
 }
 
 export default App
+
+function toIso(d: Date) {
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}

@@ -33,4 +33,4 @@ export const formatPrice = (value: number) =>
   new Intl.NumberFormat("ru-KZ", { style: "currency", currency: "KZT", currencyDisplay: "narrowSymbol", maximumFractionDigits: 0 }).format(value)
 
 // Web app URL of the Google Apps Script in telegram/Code.gs. Empty = demo mode (nothing is sent).
-export const BOOKING_URL = ""
+export const BOOKING_URL = "https://script.google.com/macros/s/AKfycbyzP1kkpUalQCO4aiaC6ku19jA8b28nDjK8lmLkJYPLNlFDWLCO_jct5JYpwe5R2ICE/exec"
